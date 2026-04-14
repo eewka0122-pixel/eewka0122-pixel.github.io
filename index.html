@@ -3,83 +3,82 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultra Fire UI</title>
+<title>UE5 Style Fire</title>
 
 <style>
-* {margin:0;padding:0;box-sizing:border-box;font-family:Arial;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial;}
 
-body {
+body{
   background:#000;
-  color:white;
   overflow:hidden;
+  color:#fff;
 }
 
 /* canvas */
-canvas {
+canvas{
   position:fixed;
   top:0;
   left:0;
-  z-index:0;
 }
 
-/* glow курсора */
-.cursor {
+/* курсор свет */
+.cursor{
   position:fixed;
   width:300px;
   height:300px;
-  background: radial-gradient(circle, rgba(255,80,0,0.3), transparent);
+  background:radial-gradient(circle, rgba(255,100,0,0.25), transparent);
   pointer-events:none;
   transform:translate(-50%,-50%);
   z-index:2;
 }
 
 /* HERO */
-.hero {
+.hero{
   height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
-  position:relative;
+  perspective:1000px;
   z-index:3;
+  position:relative;
 }
 
-/* стекло */
-.card {
-  backdrop-filter: blur(50px);
-  background: rgba(255,255,255,0.05);
+/* 3D стекло */
+.card{
+  backdrop-filter:blur(40px);
+  background:rgba(255,255,255,0.05);
   border:1px solid rgba(255,255,255,0.2);
-  padding:70px;
+  padding:80px;
   border-radius:20px;
   text-align:center;
+  transition:0.2s;
+  transform-style:preserve-3d;
 }
 
 /* неон */
-h1 {
+h1{
   font-size:80px;
-  animation: pulse 2s infinite;
+  text-shadow:
+    0 0 20px #ff6600,
+    0 0 60px #ff0000;
+  animation:pulse 2s infinite;
 }
 
-@keyframes pulse {
-  0% {text-shadow:0 0 20px #ff6600;}
-  50% {text-shadow:0 0 80px #ff0000;}
-  100% {text-shadow:0 0 20px #ff6600;}
+@keyframes pulse{
+  0%{text-shadow:0 0 20px #ff6600;}
+  50%{text-shadow:0 0 100px #ff0000;}
+  100%{text-shadow:0 0 20px #ff6600;}
 }
 
-.btn {
+button{
   margin-top:30px;
-  padding:15px 35px;
-  background:#111;
+  padding:15px 30px;
   border:none;
   border-radius:10px;
-  color:white;
+  background:#111;
+  color:#fff;
   cursor:pointer;
   box-shadow:0 0 20px #ff6600;
-  transition:0.3s;
-}
-
-.btn:hover {
-  transform:scale(1.15);
-  box-shadow:0 0 60px #ff0000;
 }
 </style>
 </head>
@@ -90,77 +89,92 @@ h1 {
 <div class="cursor" id="cursor"></div>
 
 <section class="hero">
-  <div class="card">
+  <div class="card" id="card">
     <h1>FIRE CORE</h1>
-    <button class="btn">ENTER</button>
+    <button onclick="sound()">ENTER</button>
   </div>
 </section>
 
+<audio id="audio" loop>
+  <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9bce4b.mp3">
+</audio>
+
 <script>
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("c");
+const ctx=canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let particles = [];
+canvas.width=innerWidth;
+canvas.height=innerHeight;
 
 /* курсор */
-const cursor = document.getElementById("cursor");
-document.addEventListener("mousemove", e=>{
+const cursor=document.getElementById("cursor");
+document.addEventListener("mousemove",e=>{
   cursor.style.left=e.clientX+"px";
   cursor.style.top=e.clientY+"px";
 
-  for(let i=0;i<5;i++){
-    create(e.clientX,e.clientY);
-  }
+  for(let i=0;i<6;i++) fire(e.clientX,e.clientY);
+
+  // 3D tilt
+  const card=document.getElementById("card");
+  let x=(e.clientX/window.innerWidth-0.5)*20;
+  let y=(e.clientY/window.innerHeight-0.5)*20;
+  card.style.transform=`rotateY(${x}deg) rotateX(${-y}deg)`;
 });
 
-/* клик взрыв */
-document.addEventListener("click", e=>{
-  for(let i=0;i<60;i++){
-    create(e.clientX,e.clientY);
-  }
-});
+/* звук */
+function sound(){
+  document.getElementById("audio").play();
+}
 
-/* создание частицы */
-function create(x=Math.random()*canvas.width, y=canvas.height){
-  particles.push({
+/* огонь */
+let p=[];
+
+function fire(x=Math.random()*canvas.width,y=canvas.height){
+  p.push({
     x,
     y,
-    vx:(Math.random()-0.5)*6,
-    vy:-Math.random()*8-2,
-    size:Math.random()*3+1,
+    vx:(Math.random()-0.5)*1.5,
+    vy:-Math.random()*3-1,
+    size:Math.random()*6+2,
     life:120
   });
 }
 
-/* основной цикл */
+/* взрыв */
+document.addEventListener("click",e=>{
+  for(let i=0;i<100;i++){
+    fire(e.clientX,e.clientY);
+  }
+});
+
+/* loop */
 function loop(){
-  ctx.fillStyle="rgba(0,0,0,0.2)";
+  ctx.fillStyle="rgba(0,0,0,0.15)";
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  if(Math.random()<0.5){
-    create();
-  }
+  if(Math.random()<0.7) fire();
 
-  particles.forEach((p,i)=>{
-    p.x+=p.vx;
-    p.y+=p.vy;
-    p.life--;
+  p.forEach((s,i)=>{
+    s.x+=s.vx;
+    s.y+=s.vy;
+    s.life--;
 
+    let g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,s.size*5);
+    g.addColorStop(0,"rgba(255,255,200,0.9)");
+    g.addColorStop(0.3,"rgba(255,140,0,0.7)");
+    g.addColorStop(0.6,"rgba(255,50,0,0.5)");
+    g.addColorStop(1,"rgba(0,0,0,0)");
+
+    ctx.fillStyle=g;
     ctx.beginPath();
-    ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
-
-    ctx.fillStyle=`rgba(255, ${100+Math.random()*155}, 0, ${p.life/120})`;
+    ctx.arc(s.x,s.y,s.size,0,Math.PI*2);
     ctx.fill();
 
-    if(p.life<=0) particles.splice(i,1);
+    if(s.life<=0) p.splice(i,1);
   });
 
   requestAnimationFrame(loop);
 }
-
 loop();
 </script>
 
